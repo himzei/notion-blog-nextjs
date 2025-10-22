@@ -19,16 +19,20 @@ export default function TagSection({ tags, currentTag }: TagSectionProps) {
           {tags.length > 0 ? (
             tags.map(tag => {
               // 서버사이드에서 전달받은 currentTag로 활성 상태 판단
-              const isActive = currentTag === tag.name || (!currentTag && tag.name === '전체');
-              
+              const isActive =
+                currentTag === tag.name || (!currentTag && tag.name === '전체');
+
               return (
-                <Link href={tag.name === '전체' ? '/' : `?tag=${tag.name}`} key={tag.id}>
-                  <div 
+                <Link
+                  href={tag.name === '전체' ? '/' : `?tag=${tag.name}`}
+                  key={tag.id}
+                >
+                  <div
                     className={cn(
-                      "flex items-center justify-between rounded-md p-1.5 text-sm transition-colors cursor-pointer",
-                      isActive 
-                        ? "bg-primary text-primary-foreground" 
-                        : "hover:bg-muted-foreground/10 text-muted-foreground"
+                      'flex items-center justify-between rounded-md p-1.5 text-sm transition-colors cursor-pointer',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted-foreground/10 text-muted-foreground'
                     )}
                   >
                     <span>{tag.name}</span>
@@ -39,9 +43,7 @@ export default function TagSection({ tags, currentTag }: TagSectionProps) {
             })
           ) : (
             <div className="text-center py-4">
-              <p className="text-muted-foreground text-sm">
-                태그가 없습니다.
-              </p>
+              <p className="text-muted-foreground text-sm">태그가 없습니다.</p>
             </div>
           )}
         </div>

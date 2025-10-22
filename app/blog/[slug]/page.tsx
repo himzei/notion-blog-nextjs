@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Clock, User } from 'lucide-react';
+import { CalendarDays, User } from 'lucide-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Card,
@@ -9,90 +9,28 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import remarkGfm from 'remark-gfm';
+import { getPostBySlug } from '@/lib/notion';
+import { formatDateToKorean } from '@/lib/utils';
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypePrettyCode from 'rehype-pretty-code';
+import rehypeSlug from 'rehype-slug';
+import { compile } from '@mdx-js/mdx';
+import withSlugs from 'rehype-slug';
+import withToc from '@stefanprobst/rehype-extract-toc';
+import withTocExport from '@stefanprobst/rehype-extract-toc/mdx';
 
-interface TableOfContentsItem {
-  id: string;
-  title: string;
-  items?: TableOfContentsItem[];
+interface TocEntry {
+  value: string;
+  depth: number;
+  id?: string;
+  children?: Array<TocEntry>;
 }
 
-const mockTableOfContents: TableOfContentsItem[] = [
-  {
-    id: 'intro',
-    title: '소개',
-    items: [],
-  },
-  {
-    id: 'getting-started',
-    title: '시작하기',
-    items: [
-      {
-        id: 'prerequisites',
-        title: '사전 준비사항',
-        items: [
-          {
-            id: 'node-installation',
-            title: 'Node.js 설치',
-          },
-          {
-            id: 'npm-setup',
-            title: 'NPM 설정',
-          },
-        ],
-      },
-      {
-        id: 'project-setup',
-        title: '프로젝트 설정',
-        items: [
-          {
-            id: 'create-project',
-            title: '프로젝트 생성',
-          },
-          {
-            id: 'folder-structure',
-            title: '폴더 구조',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'shadcn-ui-setup',
-    title: 'Shadcn UI 설정하기',
-    items: [
-      {
-        id: 'installation',
-        title: '설치 방법',
-        items: [
-          {
-            id: 'cli-installation',
-            title: 'CLI 도구 설치',
-          },
-          {
-            id: 'component-setup',
-            title: '컴포넌트 설정',
-          },
-        ],
-      },
-      {
-        id: 'configuration',
-        title: '환경 설정',
-        items: [
-          {
-            id: 'theme-setup',
-            title: '테마 설정',
-          },
-          {
-            id: 'typography',
-            title: '타이포그래피',
-          },
-        ],
-      },
-    ],
-  },
-];
+type Toc = Array<TocEntry>;
 
-function TableOfContentsLink({ item }: { item: TableOfContentsItem }) {
+function TableOfContentsLink({ item }: { item: TocEntry }) {
   return (
     <div className="space-y-2">
       <Link
@@ -100,11 +38,11 @@ function TableOfContentsLink({ item }: { item: TableOfContentsItem }) {
         href={`#${item.id}`}
         className={`hover:text-foreground text-muted-foreground block font-medium transition-colors`}
       >
-        {item.title}
+        {item.value}
       </Link>
-      {item.items && item.items.length > 0 && (
+      {item.children && item.children.length > 0 && (
         <div className="space-y-2 pl-4">
-          {item.items.map(subItem => (
+          {item.children.map(subItem => (
             <TableOfContentsLink key={subItem.id} item={subItem} />
           ))}
         </div>
@@ -113,7 +51,49 @@ function TableOfContentsLink({ item }: { item: TableOfContentsItem }) {
   );
 }
 
-export default function BlogPost() {
+interface BlogPostProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function BlogPost({ params }: BlogPostProps) {
+  const { slug } = await params;
+  const result = await getPostBySlug(slug);
+
+  // 포스트를 찾지 못한 경우 404 페이지 표시
+  if (!result) {
+    return (
+      <div className="container py-12">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">포스트를 찾을 수 없습니다</h1>
+          <p className="text-muted-foreground mt-2">
+            요청하신 포스트가 존재하지 않거나 삭제되었습니다.
+          </p>
+          <Link
+            href="/"
+            className="mt-4 inline-block text-primary hover:underline"
+          >
+            홈으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { markdown, post } = result;
+
+  const {data} = await compile(markdown, {
+    rehypePlugins: [
+      withSlugs,
+      rehypeSanitize,
+      withToc,
+      withTocExport,
+      /** Optionally, provide a custom name for the export. */
+      // [withTocExport, { name: 'toc' }],
+    ],
+  });
+
+ 
+
   return (
     <div className="container py-12">
       <div className="grid grid-cols-[240px_1fr_240px] gap-8">
@@ -122,147 +102,45 @@ export default function BlogPost() {
           {/* 블로그 헤더 */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Badge>프론트엔드</Badge>
-              <h1 className="text-4xl font-bold">
-                Next.js와 Shadcn UI로 블로그 만들기
-              </h1>
+              <div className="flex items-center gap-2">
+                {post.tags?.map((tag: string) => (
+                  <Badge key={tag}>{tag}</Badge>
+                ))}
+              </div>
+
+              <h1 className="text-4xl font-bold">{post.title}</h1>
             </div>
 
             {/* 메타 정보 */}
             <div className="text-muted-foreground flex gap-4 text-sm">
               <div className="flex items-center gap-1">
                 <User className="h-4 w-4" />
-                <span>홍길동</span>
+                <span>{post.author}</span>
               </div>
               <div className="flex items-center gap-1">
                 <CalendarDays className="h-4 w-4" />
-                <span>2024년 3월 15일</span>
+                <span>{formatDateToKorean(post.date || '')}</span>
               </div>
-              <div className="flex items-center gap-1">
+              {/* <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                <span>5분 읽기</span>
-              </div>
+                <span>{post.modifiedData}</span>
+              </div> */}
             </div>
           </div>
 
           <Separator className="my-8" />
 
           {/* 블로그 본문 */}
-          <div className="prose prose-slate dark:prose-invert max-w-none">
-            <p className="lead">
-              Next.js와 Shadcn UI를 사용하여 모던하고 아름다운 블로그를 만드는
-              방법을 알아보겠습니다. 이 튜토리얼에서는 기본적인 설정부터
-              배포까지 전 과정을 다룹니다.
-            </p>
-
-            <h2>시작하기</h2>
-            <p>
-              Next.js는 React 기반의 풀스택 웹 프레임워크입니다. 서버 사이드
-              렌더링, 정적 사이트 생성 등 다양한 렌더링 전략을 제공하며, 개발자
-              경험을 극대화시켜주는 여러 기능들을 제공합니다.
-            </p>
-
-            <h2>Shadcn UI 설정하기</h2>
-            <p>
-              Shadcn UI는 재사용 가능한 컴포넌트 모음으로, 아름다운 디자인과
-              접근성을 모두 갖추고 있습니다. 컴포넌트를 직접 소유할 수 있어
-              커스터마이징이 자유롭다는 장점이 있습니다.
-            </p>
-            <p className="lead">
-              Next.js와 Shadcn UI를 사용하여 모던하고 아름다운 블로그를 만드는
-              방법을 알아보겠습니다. 이 튜토리얼에서는 기본적인 설정부터
-              배포까지 전 과정을 다룹니다.
-            </p>
-
-            <h2>시작하기</h2>
-            <p>
-              Next.js는 React 기반의 풀스택 웹 프레임워크입니다. 서버 사이드
-              렌더링, 정적 사이트 생성 등 다양한 렌더링 전략을 제공하며, 개발자
-              경험을 극대화시켜주는 여러 기능들을 제공합니다.
-            </p>
-
-            <h2>Shadcn UI 설정하기</h2>
-            <p>
-              Shadcn UI는 재사용 가능한 컴포넌트 모음으로, 아름다운 디자인과
-              접근성을 모두 갖추고 있습니다. 컴포넌트를 직접 소유할 수 있어
-              커스터마이징이 자유롭다는 장점이 있습니다.
-            </p>
-            <p className="lead">
-              Next.js와 Shadcn UI를 사용하여 모던하고 아름다운 블로그를 만드는
-              방법을 알아보겠습니다. 이 튜토리얼에서는 기본적인 설정부터
-              배포까지 전 과정을 다룹니다.
-            </p>
-
-            <h2>시작하기</h2>
-            <p>
-              Next.js는 React 기반의 풀스택 웹 프레임워크입니다. 서버 사이드
-              렌더링, 정적 사이트 생성 등 다양한 렌더링 전략을 제공하며, 개발자
-              경험을 극대화시켜주는 여러 기능들을 제공합니다.
-            </p>
-
-            <h2>Shadcn UI 설정하기</h2>
-            <p>
-              Shadcn UI는 재사용 가능한 컴포넌트 모음으로, 아름다운 디자인과
-              접근성을 모두 갖추고 있습니다. 컴포넌트를 직접 소유할 수 있어
-              커스터마이징이 자유롭다는 장점이 있습니다.
-            </p>
-            <p className="lead">
-              Next.js와 Shadcn UI를 사용하여 모던하고 아름다운 블로그를 만드는
-              방법을 알아보겠습니다. 이 튜토리얼에서는 기본적인 설정부터
-              배포까지 전 과정을 다룹니다.
-            </p>
-
-            <h2>시작하기</h2>
-            <p>
-              Next.js는 React 기반의 풀스택 웹 프레임워크입니다. 서버 사이드
-              렌더링, 정적 사이트 생성 등 다양한 렌더링 전략을 제공하며, 개발자
-              경험을 극대화시켜주는 여러 기능들을 제공합니다.
-            </p>
-
-            <h2>Shadcn UI 설정하기</h2>
-            <p>
-              Shadcn UI는 재사용 가능한 컴포넌트 모음으로, 아름다운 디자인과
-              접근성을 모두 갖추고 있습니다. 컴포넌트를 직접 소유할 수 있어
-              커스터마이징이 자유롭다는 장점이 있습니다.
-            </p>
-            <p className="lead">
-              Next.js와 Shadcn UI를 사용하여 모던하고 아름다운 블로그를 만드는
-              방법을 알아보겠습니다. 이 튜토리얼에서는 기본적인 설정부터
-              배포까지 전 과정을 다룹니다.
-            </p>
-
-            <h2>시작하기</h2>
-            <p>
-              Next.js는 React 기반의 풀스택 웹 프레임워크입니다. 서버 사이드
-              렌더링, 정적 사이트 생성 등 다양한 렌더링 전략을 제공하며, 개발자
-              경험을 극대화시켜주는 여러 기능들을 제공합니다.
-            </p>
-
-            <h2>Shadcn UI 설정하기</h2>
-            <p>
-              Shadcn UI는 재사용 가능한 컴포넌트 모음으로, 아름다운 디자인과
-              접근성을 모두 갖추고 있습니다. 컴포넌트를 직접 소유할 수 있어
-              커스터마이징이 자유롭다는 장점이 있습니다.
-            </p>
-            <p className="lead">
-              Next.js와 Shadcn UI를 사용하여 모던하고 아름다운 블로그를 만드는
-              방법을 알아보겠습니다. 이 튜토리얼에서는 기본적인 설정부터
-              배포까지 전 과정을 다룹니다.
-            </p>
-
-            <h2>시작하기</h2>
-            <p>
-              Next.js는 React 기반의 풀스택 웹 프레임워크입니다. 서버 사이드
-              렌더링, 정적 사이트 생성 등 다양한 렌더링 전략을 제공하며, 개발자
-              경험을 극대화시켜주는 여러 기능들을 제공합니다.
-            </p>
-
-            <h2>Shadcn UI 설정하기</h2>
-            <p>
-              Shadcn UI는 재사용 가능한 컴포넌트 모음으로, 아름다운 디자인과
-              접근성을 모두 갖추고 있습니다. 컴포넌트를 직접 소유할 수 있어
-              커스터마이징이 자유롭다는 장점이 있습니다.
-            </p>
+          <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:scroll-mt-[var(--header-height)] ">
+            <MDXRemote
+              source={markdown}
+              options={{
+                mdxOptions: {
+                  remarkPlugins: [remarkGfm],
+                  rehypePlugins: [rehypeSlug, rehypeSanitize, rehypePrettyCode],
+                },
+              }}
+            />
           </div>
 
           <Separator className="my-16" />
@@ -305,7 +183,7 @@ export default function BlogPost() {
             <div className="bg-muted/60 space-y-4 rounded-lg p-6 backdrop-blur-sm">
               <h3 className="text-lg font-semibold">목차</h3>
               <nav className="space-y-3 text-sm">
-                {mockTableOfContents.map(item => (
+                {data?.toc?.map(item => (
                   <TableOfContentsLink key={item.id} item={item} />
                 ))}
               </nav>

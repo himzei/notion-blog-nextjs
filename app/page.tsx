@@ -84,11 +84,11 @@ export default async function Home({ searchParams }: HomeProps) {
   // URL 쿼리 파라미터에서 태그 필터 추출 (서버사이드에서 처리)
   const resolvedSearchParams = await searchParams;
   const tagFilter = resolvedSearchParams.tag;
-  
+
   // 서버사이드에서 병렬로 데이터 가져오기 (성능 최적화)
   const [posts, tags] = await Promise.all([
     getPublishedPosts(tagFilter), // 태그 필터링된 포스트 가져오기
-    getTagList() // 태그 목록 가져오기
+    getTagList(), // 태그 목록 가져오기
   ]);
 
   return (
@@ -105,8 +105,8 @@ export default async function Home({ searchParams }: HomeProps) {
               {tagFilter ? `"${tagFilter}" 태그 포스트` : '블로그 목록'}
             </h2>
             {tagFilter && (
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 필터 초기화
@@ -127,7 +127,7 @@ export default async function Home({ searchParams }: HomeProps) {
           {/* 블로그 카드 그리드 */}
           <div className="grid gap-4">
             {posts.length > 0 ? (
-              posts.map((post) => (
+              posts.map(post => (
                 <Link href={`/blog/${post.slug}`} key={post.id}>
                   <PostCard post={post} />
                 </Link>
@@ -135,14 +135,13 @@ export default async function Home({ searchParams }: HomeProps) {
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground text-lg">
-                  {tagFilter 
-                    ? `"${tagFilter}" 태그에 해당하는 포스트가 없습니다.` 
-                    : '아직 게시된 포스트가 없습니다.'
-                  }
+                  {tagFilter
+                    ? `"${tagFilter}" 태그에 해당하는 포스트가 없습니다.`
+                    : '아직 게시된 포스트가 없습니다.'}
                 </p>
                 {tagFilter && (
-                  <Link 
-                    href="/" 
+                  <Link
+                    href="/"
                     className="mt-4 inline-block text-sm text-primary hover:underline"
                   >
                     전체 포스트 보기
