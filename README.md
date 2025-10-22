@@ -1,8 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Notion Blog with Next.js
+
+Notion API를 사용하여 블로그를 구축한 Next.js 프로젝트입니다.
+
+## 환경 설정
+
+### 1. Notion Integration 설정
+
+1. [Notion Integrations](https://www.notion.so/my-integrations)에서 새 Integration을 생성합니다.
+2. Integration Token을 복사합니다.
+3. Notion 데이터베이스에 Integration을 공유합니다.
+
+### 2. 환경변수 설정
+
+프로젝트 루트에 `.env.local` 파일을 생성하고 다음 내용을 추가합니다:
+
+```env
+# Notion API 설정
+NOTION_TOKEN=your_notion_integration_token_here
+NOTION_DATABASE_ID=your_notion_database_id_here
+```
+
+**중요**:
+
+- `NOTION_TOKEN`: [Notion Integrations](https://www.notion.so/my-integrations)에서 생성한 Integration Token
+- `NOTION_DATABASE_ID`: Notion 데이터베이스 URL에서 추출 (32자리 문자열)
+- 환경변수 설정 후 개발 서버를 재시작해야 합니다
+
+### 3. Notion 데이터베이스 구조
+
+데이터베이스에 다음 속성들이 필요합니다:
+
+- `Status` (Status): Published/Draft 상태 관리
+- `Modified Date` (Last edited time): 수정일시
 
 ## Getting Started
 
-First, run the development server:
+환경변수 설정 후 개발 서버를 실행합니다:
 
 ```bash
 npm run dev
