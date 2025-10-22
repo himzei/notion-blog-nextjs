@@ -28,7 +28,7 @@ interface TocEntry {
   children?: Array<TocEntry>;
 }
 
-type Toc = Array<TocEntry>;
+
 
 function TableOfContentsLink({ item }: { item: TocEntry }) {
   return (

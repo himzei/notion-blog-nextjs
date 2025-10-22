@@ -1,6 +1,51 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Client } from '@notionhq/client';
 import { Post } from '@/types/blog';
 import { NotionToMarkdown } from 'notion-to-md';
+
+// Notion API 응답 타입 정의
+interface NotionTag {
+  name: string;
+}
+
+interface NotionPerson {
+  name: string;
+}
+
+interface NotionRichText {
+  plain_text: string;
+}
+
+interface NotionTitle {
+  plain_text: string;
+}
+
+interface NotionDate {
+  start: string;
+}
+
+interface NotionProperties {
+  Title?: { title: NotionTitle[] };
+  Description?: { rich_text: NotionRichText[] };
+  Slug?: { rich_text: NotionRichText[] };
+  Tags?: { multi_select: NotionTag[] };
+  Author?: { people: NotionPerson[] };
+  Date?: { date: NotionDate };
+  'Modified Date'?: { date: NotionDate };
+}
+
+interface NotionCover {
+  external?: { url: string };
+  file?: { url: string };
+}
+
+interface NotionAPIResponse {
+  id: string;
+  properties: NotionProperties;
+  cover?: NotionCover;
+}
+
+
 
 export const notion = new Client({
   auth: process.env.NOTION_TOKEN,
@@ -45,7 +90,7 @@ export const getPostBySlug = async (
 
     return {
       markdown: parent,
-      post: transformNotionPostToPost(response.results[0]),
+      post: transformNotionPostToPost(response.results[0] as NotionAPIResponse),
     };
   } catch (error) {
     console.error('노션 API에서 포스트를 가져오는 중 오류 발생:', error);
@@ -53,22 +98,9 @@ export const getPostBySlug = async (
   }
 };
 
-// 노션 API cover 객체에서 이미지 URL을 안전하게 추출하는 헬퍼 함수
-const getCoverImageUrl = (cover: any): string => {
-  if (!cover) return '';
-
-  switch (cover.type) {
-    case 'external':
-      return cover.external?.url || '';
-    case 'file':
-      return cover.file?.url || '';
-    default:
-      return '';
-  }
-};
 
 // 노션 API 응답을 Post 타입으로 변환하는 헬퍼 함수
-const transformNotionPostToPost = (notionPost: any): Post => {
+const transformNotionPostToPost = (notionPost: NotionAPIResponse): Post => {
   const properties = notionPost.properties;
 
   // 제목 추출 (title 타입)
@@ -81,7 +113,7 @@ const transformNotionPostToPost = (notionPost: any): Post => {
   const slug = properties.Slug?.rich_text?.[0]?.plain_text || '';
 
   // 태그 추출 (multi_select 타입)
-  const tags = properties.Tags?.multi_select?.map((tag: any) => tag.name) || [];
+  const tags = properties.Tags?.multi_select?.map((tag: NotionTag) => tag.name) || [];
 
   // 작성자 추출 (people 타입)
   const author = properties.Author?.people?.[0]?.name || '';
@@ -122,7 +154,7 @@ export const getPublishedPosts = async (
     };
 
     // 태그 필터가 있는 경우 AND 조건으로 추가
-    const queryFilter = tagFilter
+    const queryFilter: any = tagFilter
       ? {
           and: [
             filter,
@@ -148,7 +180,7 @@ export const getPublishedPosts = async (
     });
 
     // 노션 응답을 Post 타입으로 변환
-    const posts: Post[] = response.results.map(transformNotionPostToPost);
+    const posts: Post[] = response.results.map((result) => transformNotionPostToPost(result as NotionAPIResponse));
 
     return posts;
   } catch (error) {
@@ -175,9 +207,9 @@ export const getTagList = async (): Promise<
 
     // 모든 포스트에서 태그 추출
     const allTags: string[] = [];
-    response.results.forEach((post: any) => {
+    response.results.forEach((post) => {
       const tags =
-        post.properties.Tags?.multi_select?.map((tag: any) => tag.name) || [];
+        (post as NotionAPIResponse).properties.Tags?.multi_select?.map((tag: NotionTag) => tag.name) || [];
       allTags.push(...tags);
     });
 
