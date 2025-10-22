@@ -45,8 +45,6 @@ interface NotionAPIResponse {
   cover?: NotionCover;
 }
 
-
-
 export const notion = new Client({
   auth: process.env.NOTION_TOKEN,
 });
@@ -98,7 +96,6 @@ export const getPostBySlug = async (
   }
 };
 
-
 // 노션 API 응답을 Post 타입으로 변환하는 헬퍼 함수
 const transformNotionPostToPost = (notionPost: NotionAPIResponse): Post => {
   const properties = notionPost.properties;
@@ -113,7 +110,8 @@ const transformNotionPostToPost = (notionPost: NotionAPIResponse): Post => {
   const slug = properties.Slug?.rich_text?.[0]?.plain_text || '';
 
   // 태그 추출 (multi_select 타입)
-  const tags = properties.Tags?.multi_select?.map((tag: NotionTag) => tag.name) || [];
+  const tags =
+    properties.Tags?.multi_select?.map((tag: NotionTag) => tag.name) || [];
 
   // 작성자 추출 (people 타입)
   const author = properties.Author?.people?.[0]?.name || '';
@@ -180,7 +178,9 @@ export const getPublishedPosts = async (
     });
 
     // 노션 응답을 Post 타입으로 변환
-    const posts: Post[] = response.results.map((result) => transformNotionPostToPost(result as NotionAPIResponse));
+    const posts: Post[] = response.results.map(result =>
+      transformNotionPostToPost(result as NotionAPIResponse)
+    );
 
     return posts;
   } catch (error) {
@@ -207,9 +207,11 @@ export const getTagList = async (): Promise<
 
     // 모든 포스트에서 태그 추출
     const allTags: string[] = [];
-    response.results.forEach((post) => {
+    response.results.forEach(post => {
       const tags =
-        (post as NotionAPIResponse).properties.Tags?.multi_select?.map((tag: NotionTag) => tag.name) || [];
+        (post as NotionAPIResponse).properties.Tags?.multi_select?.map(
+          (tag: NotionTag) => tag.name
+        ) || [];
       allTags.push(...tags);
     });
 

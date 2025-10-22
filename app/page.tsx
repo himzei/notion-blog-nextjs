@@ -160,7 +160,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     <div className="h-36 w-36 overflow-hidden rounded-full">
                       <Image
                         src="/images/profile-light.png"
-                        alt="짐코딩"
+                        alt="테스트"
                         width={144}
                         height={144}
                         className="object-cover"

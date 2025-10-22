@@ -28,8 +28,6 @@ interface TocEntry {
   children?: Array<TocEntry>;
 }
 
-
-
 function TableOfContentsLink({ item }: { item: TocEntry }) {
   return (
     <div className="space-y-2">
@@ -81,7 +79,7 @@ export default async function BlogPost({ params }: BlogPostProps) {
 
   const { markdown, post } = result;
 
-  const {data} = await compile(markdown, {
+  const { data } = await compile(markdown, {
     rehypePlugins: [
       withSlugs,
       rehypeSanitize,
@@ -91,8 +89,6 @@ export default async function BlogPost({ params }: BlogPostProps) {
       // [withTocExport, { name: 'toc' }],
     ],
   });
-
- 
 
   return (
     <div className="container py-12">
