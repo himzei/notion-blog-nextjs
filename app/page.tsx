@@ -11,16 +11,10 @@ import {
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { PostCard } from '@/components/features/blog/PostCard';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import TagSection from './_components/TagSection';
 import Link from 'next/link';
 import { getPublishedPosts, getTagList } from '@/lib/notion';
+import SortSelect from './_components/SortSelect';
 
 // mockTags 제거 - 실제 Notion API 데이터 사용
 
@@ -77,17 +71,17 @@ const contactItems = [
 ];
 
 interface HomeProps {
-  searchParams: Promise<{ tag?: string }>;
+  searchParams: Promise<{ tag?: string, sort?: string }>;
 }
 
 export default async function Home({ searchParams }: HomeProps) {
   // URL 쿼리 파라미터에서 태그 필터 추출 (서버사이드에서 처리)
-  const resolvedSearchParams = await searchParams;
-  const tagFilter = resolvedSearchParams.tag;
-
+  const {tag, sort} = await searchParams;
+  const tagFilter = tag
+  const selectedSort = sort || "latest";
   // 서버사이드에서 병렬로 데이터 가져오기 (성능 최적화)
   const [posts, tags] = await Promise.all([
-    getPublishedPosts(tagFilter), // 태그 필터링된 포스트 가져오기
+    getPublishedPosts(tagFilter, selectedSort), // 태그 필터링된 포스트 가져오기
     getTagList(), // 태그 목록 가져오기
   ]);
 
@@ -104,25 +98,8 @@ export default async function Home({ searchParams }: HomeProps) {
             <h2 className="text-3xl font-bold tracking-tight">
               {tagFilter ? `"${tagFilter}" 태그 포스트` : '블로그 목록'}
             </h2>
-            {tagFilter && (
-              <Link
-                href="/"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                필터 초기화
-              </Link>
-            )}
+            <SortSelect />
           </div>
-
-          <Select defaultValue="latest">
-            <SelectTrigger className="w-[100px]">
-              <SelectValue placeholder="정렬 방식 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="latest">최신순</SelectItem>
-              <SelectItem value="oldest">오래된순</SelectItem>
-            </SelectContent>
-          </Select>
 
           {/* 블로그 카드 그리드 */}
           <div className="grid gap-4">
@@ -170,7 +147,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
 
                 <div className="text-center">
-                  <h3 className="text-lg font-bold">짐코딩</h3>
+                  <h3 className="text-lg font-bold">ken blog</h3>
                   <p className="text-primary text-sm">Full Stack Developer</p>
                 </div>
 

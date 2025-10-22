@@ -140,7 +140,8 @@ const transformNotionPostToPost = (notionPost: NotionAPIResponse): Post => {
 };
 
 export const getPublishedPosts = async (
-  tagFilter?: string
+  tagFilter?: string,
+  sort?: string
 ): Promise<Post[]> => {
   try {
     // 태그 필터가 있으면 태그 조건을 추가하고, 없으면 상태만 필터링
@@ -172,7 +173,7 @@ export const getPublishedPosts = async (
       sorts: [
         {
           property: 'Date',
-          direction: 'descending',
+          direction: sort === 'latest' ? 'descending' : 'ascending',
         },
       ],
     });
